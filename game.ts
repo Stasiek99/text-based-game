@@ -1,20 +1,33 @@
 import * as readlineSync from "readline-sync";
 
+export enum Difficulty {
+    EASY = "EASY",
+    MEDIUM = "MEDIUM",
+    HARD = "HARD"
+}
+
 class Game {
+    private playerName: string;
     private playerHealth: number;
     private monsterHealth: number;
     private isGameOver: boolean;
     private turnCount: number;
+    private difficulty: Difficulty;
 
     constructor() {
+        this.playerName = "";
         this.playerHealth = 100;
-        this.monsterHealth = 100;
+        this.monsterHealth = 80;
         this.isGameOver = false;
         this.turnCount = 1;
+        this.difficulty = Difficulty.MEDIUM;
     }
 
     public start(): void {
-        console.log("Witaj w grze Monster Slayer!");
+        this.setPlayerName();
+        this.setDifficulty();
+
+        console.log(`Witaj w grze Monster Slayer, ${this.playerName!}! (Poziom trudnosci: ${this.difficulty}`);
         while (!this.isGameOver) {
             console.log(`----- Tura ${this.turnCount} -----`);
             this.playerTurn();
@@ -30,12 +43,34 @@ class Game {
         this.askForNewGame();
     }
 
+    private setPlayerName(): void {
+        this.playerName = readlineSync.question("Podaj swoja nazwe uzytkownika: ");
+    }
+
+    private setDifficulty(): void {
+        const difficultyOptions = Object.values(Difficulty);
+        const difficultyIndex = readlineSync.keyInSelect(difficultyOptions, "Wybierz poziom trudnosci:");
+        this.difficulty = difficultyOptions[difficultyIndex] as Difficulty;
+
+        switch (this.difficulty) {
+            case Difficulty.EASY:
+                this.monsterHealth = 80;
+                break;
+            case Difficulty.MEDIUM:
+                this.monsterHealth = 100;
+                break;
+            case Difficulty.HARD:
+                this.monsterHealth = 120;
+                break;
+        }
+    }
+
     private playerTurn(): void {
         console.log("Twoje zdrowie:", this.playerHealth);
         console.log("Zdrowie potwora:", this.monsterHealth);
 
         const actions: string[] = ["Zwykly atak", "Silny atak", "Leczenie"];
-        const actionIndex = readlineSync.keyInSelect(actions, "Co chcesz zrobić?");
+        const actionIndex = readlineSync.keyInSelect(actions, "Co chcesz zrobic?");
 
         switch (actionIndex) {
             case 0:
@@ -51,41 +86,65 @@ class Game {
     }
 
     private normalAttack(): void {
-        const damage = this.calculateDamage(3, 10);
+        const damage: number = this.calculateDamage(5, 12);
         this.monsterHealth -= damage;
         console.log(`Zadałeś potworowi ${damage} obrażeń!`);
     }
 
     private strongAttack(): void {
         if (this.turnCount % 3 !== 0) {
-            console.log("silny atak jest dostępny co trzecią turę. Użyj zwykłego ataku");
+            console.log("Silny atak jest dostępny co trzecią turę. Użyj zwykłego ataku");
             return;
         }
 
-        const damage = this.calculateDamage(10,20);
+        const damage: number = this.calculateDamage(10, 20);
         this.monsterHealth -= damage;
         console.log(`Użyłeś silnego ataku i zadałeś potworowi ${damage} obrażeń!`);
     }
 
     private heal(): void {
         if (this.turnCount % 5 !== 0) {
-            console.log("Leczenie jest dostępne co piątą turę. Użyj zwykłego ataku");
+            console.log("Leczenie jest dostepne co piata ture. Uzyj zwyklego ataku");
             return;
         }
 
-        const healing = this.calculateDamage(5, 15);
+        const healing = this.calculateHealing(5, 12);
         this.playerHealth += healing;
-        console.log(`Uleczono się o ${healing} punktów życia.`);
+        console.log(`Uleczono sie o ${healing} punktow zycia.`);
     }
 
     private monsterTurn(): void {
-        const damage = this.calculateDamage(5, 12);
+        const damage: number = this.calculateDamage(5, 14);
         this.playerHealth -= damage;
-        console.log(`Potwór zadał ci ${damage} obrażeń!`);
+        console.log(`Potwor zadal ci ${damage} obrazen!`);
     }
 
     private calculateDamage(min: number, max: number): number {
-        return Math.floor(Math.random() * (max - min + 1) + min);
+        const damage = Math.floor(Math.random() * (max - min + 1) + min);
+        switch (this.difficulty) {
+            case Difficulty.EASY:
+                return Math.floor(damage * 1.5);
+            case Difficulty.MEDIUM:
+                return Math.ceil(damage * 1.1);
+            case Difficulty.HARD:
+                return Math.ceil(damage * 0.6);
+            default:
+                return damage;
+        }
+    }
+
+    private calculateHealing(min: number, max: number): number {
+        const healing = Math.floor(Math.random() * (max - min + 1) + min);
+        switch (this.difficulty) {
+            case Difficulty.EASY:
+                return Math.ceil(healing * 1.5);
+            case Difficulty.MEDIUM:
+                return healing;
+            case Difficulty.HARD:
+                return Math.floor(healing * 0.8);
+            default:
+                return healing;
+        }
     }
 
     private checkGameOver(): boolean {
@@ -98,25 +157,25 @@ class Game {
 
     private displayWinner(): void {
         if (this.playerHealth <= 0) {
-            console.log("Przegrałeś! Potwój cię zabił.");
+            console.log("Przegraleś! Potwor cie zabil.");
         } else {
-            console.log("Gratulacje. Wygrałeś grę!");
+            console.log("Gratulacje. Wygrałes gre!");
         }
     }
 
     private askForNewGame(): void {
-        const playAgain = readlineSync.keyInYNStrict("Chcesz zagrać ponownie?");
+        const playAgain = readlineSync.keyInYNStrict("Chcesz zagrac ponownie?");
         if (playAgain) {
             this.resetGame();
             this.start();
         } else {
-            console.log("Dziękuję za grę! Do zobaczenia");
+            console.log("Dziekuje za grę! Do zobaczenia");
         }
     }
 
     private resetGame(): void {
         this.playerHealth = 100;
-        this.monsterHealth = 100;
+        this.monsterHealth = 80;
         this.isGameOver = false;
         this.turnCount = 1;
     }
