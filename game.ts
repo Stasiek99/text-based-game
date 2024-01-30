@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as readlineSync from "readline-sync";
 
 export enum Difficulty {
@@ -7,12 +8,13 @@ export enum Difficulty {
 }
 
 class Game {
-    private playerName: string;
+    private playerName: string | null;
     private playerHealth: number;
     private monsterHealth: number;
     private isGameOver: boolean;
     private turnCount: number;
     private difficulty: Difficulty;
+    private hasEnteredName: boolean;
 
     constructor() {
         this.playerName = "";
@@ -21,10 +23,15 @@ class Game {
         this.isGameOver = false;
         this.turnCount = 1;
         this.difficulty = Difficulty.MEDIUM;
+        this.hasEnteredName = false;
     }
 
     public start(): void {
-        this.setPlayerName();
+        if (!this.hasEnteredName) {
+            this.setPlayerName();
+            this.hasEnteredName = true;
+        }
+
         this.setDifficulty();
 
         console.log(`Witaj w grze Monster Slayer, ${this.playerName!}! (Poziom trudnosci: ${this.difficulty}`);
@@ -40,6 +47,8 @@ class Game {
         }
 
         this.displayWinner();
+        this.updateHighscore();
+        this.displayHighscore();
         this.askForNewGame();
     }
 
@@ -160,6 +169,47 @@ class Game {
             console.log("Przegraleś! Potwor cie zabil.");
         } else {
             console.log("Gratulacje. Wygrałes gre!");
+        }
+    }
+
+    private updateHighscore(): void {
+        if (this.playerHealth > 0) {
+            const highscoreFile: string = "highscore.txt";
+            let highscore: { [key: string]: number } = {};
+
+            try {
+                const data: string = fs.readFileSync(highscoreFile, "utf-8");
+                highscore = JSON.parse(data);
+            } catch (error: any) {
+                console.error("Blad odczytu pliku highscore: ", (error as Error).message);
+            }
+
+            const key: string = `${this.playerName}-${this.turnCount}`;
+            highscore[key] = this.turnCount;
+
+            try {
+                fs.writeFileSync(highscoreFile, JSON.stringify(highscore, null, 2), "utf-8");
+            } catch (error: any) {
+                console.error("Blad zapisu do pliku highscore:", (error as Error).message);
+            }
+        }
+    }
+
+    private displayHighscore(): void {
+        const highscoreFile: string = "highscore.txt";
+
+        try {
+            const data: string =fs.readFileSync(highscoreFile, "utf-8");
+            const highscore: { [key: string]: number } = JSON.parse(data);
+
+            console.log("----- Highscore -----");
+            Object.entries(highscore)
+                .sort(([, scoreA], [, scoreB]) => scoreA - scoreB)
+                .forEach(([username, rounds], index) => {
+                    console.log(`${index + 1}, ${username}: ${rounds} rounds`);
+                });
+        } catch (error: any) {
+            console.error("Blad odczytu pliku highscore:", (error as Error).message);
         }
     }
 
